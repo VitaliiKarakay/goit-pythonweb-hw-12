@@ -30,3 +30,5 @@ class User(Base):
     avatar = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    is_verified = Column(Boolean, default=False)
+    verification_token = Column(String(255), nullable=True)
