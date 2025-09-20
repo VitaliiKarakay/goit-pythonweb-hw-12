@@ -13,12 +13,17 @@ import redis.asyncio as redis_asyncio
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+import cloudinary
 
 load_dotenv()
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+)
 
 app = FastAPI()
 
-# Включаем CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Можно указать конкретные домены
