@@ -5,7 +5,8 @@ from src.database.models import User
 from src.schemas import UserCreate, UserResponse, UserLogin, TokenResponse
 from passlib.context import CryptContext
 from sqlalchemy.future import select
-from src.services.auth import create_access_token
+from src.services.auth import create_access_token, get_current_user
+from fastapi_limiter.depends import RateLimiter
 import uuid
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -59,3 +60,14 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     access_token = create_access_token({"sub": str(db_user.id), "email": db_user.email})
     return TokenResponse(access_token=access_token)
+
+@router.get("/me", response_model=UserResponse, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+async def get_me(current_user: User = Depends(get_current_user)):
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        is_active=current_user.is_active,
+        avatar=current_user.avatar,
+        created_at=current_user.created_at,
+        is_verified=current_user.is_verified
+    )

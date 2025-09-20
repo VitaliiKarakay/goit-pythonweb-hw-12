@@ -8,6 +8,12 @@ from src.exceptions import (
 )
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
+from fastapi_limiter import FastAPILimiter
+import aioredis
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -23,6 +29,13 @@ app.add_exception_handler(Exception, general_exception_handler)
 @app.get("/healthcheck")
 async def healthchecker():
     return {"message": "The application is up and running!"}
+
+
+@app.on_event("startup")
+async def startup():
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    redis = await aioredis.from_url(redis_url, encoding="utf8", decode_responses=True)
+    await FastAPILimiter.init(redis)
 
 
 if __name__ == "__main__":

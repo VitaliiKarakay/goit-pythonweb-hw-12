@@ -7,6 +7,8 @@ click==8.1.8
 dnspython==2.7.0
 email_validator==2.2.0
 fastapi==0.115.12
+fastapi-limiter==0.1.5
+aioredis==2.0.1
 greenlet==3.2.4
 h11==0.14.0
 idna==3.10
