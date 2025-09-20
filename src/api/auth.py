@@ -76,7 +76,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
         is_verified=current_user.is_verified
     )
 
-@user_router.post("/avatar")
+@user_router.post("/avatar", status_code=201)
 async def update_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),

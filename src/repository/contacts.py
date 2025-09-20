@@ -23,7 +23,7 @@ class ContactRepository:
 
         if existing_contact:
             raise HTTPException(
-                status_code=400,
+                status_code=409,
                 detail=f"Contact with email {contact_data.email} already exists.",
             )
 

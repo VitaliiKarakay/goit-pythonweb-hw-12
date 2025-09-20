@@ -18,8 +18,10 @@ router = APIRouter(prefix="/contacts", tags=["contacts"])
 @router.post(
     "/",
     response_model=ContactResponse,
+    status_code=201,
     responses={
         400: {"description": "Bad Request"},
+        409: {"description": "Conflict"},
         422: {"description": "Validation Error"},
     },
 )
