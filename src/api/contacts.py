@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import Optional
 
 from src.database.db import get_db
 from src.schemas import (
@@ -9,6 +9,7 @@ from src.schemas import (
     ContactResponse,
     ContactListResponse,
 )
+from src.services.auth import get_current_user
 from src.services.contacts import ContactService
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
@@ -22,9 +23,13 @@ router = APIRouter(prefix="/contacts", tags=["contacts"])
         422: {"description": "Validation Error"},
     },
 )
-async def create_contact(contact: ContactCreate, db: AsyncSession = Depends(get_db)):
+async def create_contact(
+    contact: ContactCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     service = ContactService(db)
-    return await service.create_contact(contact)
+    return await service.create_contact(contact, user_id=current_user.id)
 
 
 @router.get("/", response_model=ContactListResponse)
@@ -35,9 +40,12 @@ async def get_contacts(
     last_name: Optional[str] = Query(None, description="Filter by last name"),
     email: Optional[str] = Query(None, description="Filter by email"),
     db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     service = ContactService(db)
-    return await service.get_contacts(skip, limit, first_name, last_name, email)
+    return await service.get_contacts(
+        skip, limit, first_name, last_name, email, user_id=current_user.id
+    )
 
 
 @router.get("/birthdays/", response_model=ContactListResponse)
@@ -48,9 +56,10 @@ async def get_upcoming_birthdays(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, le=500, description="Max number of records to return"),
     db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     service = ContactService(db)
-    return await service.get_upcoming_birthdays(days, skip, limit)
+    return await service.get_upcoming_birthdays(days, skip, limit, user_id=current_user.id)
 
 
 @router.patch(
@@ -59,10 +68,13 @@ async def get_upcoming_birthdays(
     responses={400: {"description": "Bad Request"}, 404: {"description": "Not Found"}},
 )
 async def update_contact(
-    contact_id: int, contact: ContactUpdate, db: AsyncSession = Depends(get_db)
+    contact_id: int,
+    contact: ContactUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     service = ContactService(db)
-    updated_contact = await service.update_contact(contact_id, contact)
+    updated_contact = await service.update_contact(contact_id, contact, user_id=current_user.id)
     if updated_contact is None:
         raise HTTPException(status_code=404, detail="Contact not found")
     return updated_contact
@@ -73,9 +85,11 @@ async def update_contact(
     response_model=ContactResponse,
     responses={400: {"description": "Bad Request"}, 404: {"description": "Not Found"}},
 )
-async def delete_contact(contact_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_contact(
+    contact_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)
+):
     service = ContactService(db)
-    deleted_contact = await service.delete_contact(contact_id)
+    deleted_contact = await service.delete_contact(contact_id, user_id=current_user.id)
     if deleted_contact is None:
         raise HTTPException(status_code=404, detail="Contact not found")
     return deleted_contact

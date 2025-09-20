@@ -48,3 +48,8 @@ class UserResponse(BaseModel):
     is_active: bool
     avatar: Optional[str] = None
     created_at: Optional[datetime] = None
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

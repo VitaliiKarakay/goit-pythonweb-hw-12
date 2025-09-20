@@ -15,9 +15,9 @@ class ContactRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create_contact(self, contact_data: ContactCreate) -> Contact:
+    async def create_contact(self, contact_data: ContactCreate, user_id: int) -> Contact:
         existing_contact_stmt = select(
-            Contact).filter_by(email=contact_data.email)
+            Contact).filter_by(email=contact_data.email, user_id=user_id)
         existing_contact_result = await self.db.execute(existing_contact_stmt)
         existing_contact = existing_contact_result.scalar_one_or_none()
 
@@ -27,7 +27,9 @@ class ContactRepository:
                 detail=f"Contact with email {contact_data.email} already exists.",
             )
 
-        contact = Contact(**contact_data.model_dump())
+        contact_dict = contact_data.model_dump()
+        contact_dict["user_id"] = user_id
+        contact = Contact(**contact_dict)
         self.db.add(contact)
 
         try:
@@ -48,10 +50,11 @@ class ContactRepository:
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
         email: Optional[str] = None,
+        user_id: int = None,
     ):
         stmt = select(Contact)
 
-        filters = []
+        filters = [Contact.user_id == user_id]
         if first_name:
             filters.append(Contact.first_name.ilike(f"%{first_name}%"))
         if last_name:

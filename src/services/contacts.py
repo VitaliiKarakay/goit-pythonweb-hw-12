@@ -11,9 +11,9 @@ class ContactService:
     def __init__(self, db: AsyncSession):
         self.repo = ContactRepository(db)
 
-    async def create_contact(self, contact_data: ContactCreate):
+    async def create_contact(self, contact_data: ContactCreate, user_id: int):
         try:
-            return await self.repo.create_contact(contact_data)
+            return await self.repo.create_contact(contact_data, user_id)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -24,8 +24,9 @@ class ContactService:
         first_name: Optional[str],
         last_name: Optional[str],
         email: Optional[str],
+        user_id: int,
     ):
-        return await self.repo.get_contacts(skip, limit, first_name, last_name, email)
+        return await self.repo.get_contacts(skip, limit, first_name, last_name, email, user_id)
 
     async def get_contact_by_id(self, contact_id: int):
         return await self.repo.get_contact_by_id(contact_id)

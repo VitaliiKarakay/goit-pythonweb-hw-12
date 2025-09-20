@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql import func
 
@@ -17,6 +17,7 @@ class Contact(Base):
     phone_number = Column(String(20), nullable=False)
     birthday = Column(DateTime, nullable=True)
     additional_info = Column(String(255), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
 
 class User(Base):
