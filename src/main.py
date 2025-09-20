@@ -9,7 +9,7 @@ from src.exceptions import (
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 from fastapi_limiter import FastAPILimiter
-import aioredis
+import redis.asyncio as redis_asyncio
 import os
 from dotenv import load_dotenv
 
@@ -34,7 +34,7 @@ async def healthchecker():
 @app.on_event("startup")
 async def startup():
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    redis = await aioredis.from_url(redis_url, encoding="utf8", decode_responses=True)
+    redis = await redis_asyncio.from_url(redis_url, encoding="utf8", decode_responses=True)
     await FastAPILimiter.init(redis)
 
 
