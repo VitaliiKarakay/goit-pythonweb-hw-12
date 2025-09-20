@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from src.api import contacts
+from src.api import contacts, auth
 from src.exceptions import (
     validation_exception_handler,
     integrity_exception_handler,
@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 app = FastAPI()
 
 app.include_router(contacts.router)
+app.include_router(auth.router)
 
 app.add_exception_handler(ValidationError, validation_exception_handler)
 app.add_exception_handler(IntegrityError, integrity_exception_handler)

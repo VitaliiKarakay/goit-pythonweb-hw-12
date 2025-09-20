@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr
@@ -30,3 +30,21 @@ class ContactListResponse(BaseModel):
     skip: int
     limit: int
     contacts: List[ContactResponse]
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: EmailStr
+    is_active: bool
+    avatar: Optional[str] = None
+    created_at: Optional[datetime] = None
