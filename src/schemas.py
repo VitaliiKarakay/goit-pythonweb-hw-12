@@ -48,6 +48,7 @@ class UserResponse(BaseModel):
     is_active: bool
     avatar: Optional[str] = None
     created_at: Optional[datetime] = None
+    is_verified: bool
 
 
 class TokenResponse(BaseModel):
