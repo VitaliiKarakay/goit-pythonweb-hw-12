@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=your_redis_password
+    command: [ "redis-server", "--requirepass", "your_redis_password" ]
+    volumes:
+      - redis_data:/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    restart: always
+
+volumes:
+  redis_data:
