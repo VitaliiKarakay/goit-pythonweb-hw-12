@@ -1,15 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import uuid
+
+from cloudinary.uploader import upload as cloudinary_upload
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi_limiter.depends import RateLimiter
+from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
 from src.database.db import get_db
 from src.database.models import User
 from src.schemas import UserCreate, UserResponse, UserLogin, TokenResponse
-from passlib.context import CryptContext
-from sqlalchemy.future import select
 from src.services.auth import create_access_token, get_current_user
-from fastapi_limiter.depends import RateLimiter
-import uuid
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+user_router = APIRouter(prefix="/users", tags=["users"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -71,3 +75,21 @@ async def get_me(current_user: User = Depends(get_current_user)):
         created_at=current_user.created_at,
         is_verified=current_user.is_verified
     )
+
+@user_router.post("/avatar", status_code=201)
+async def update_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        result = cloudinary_upload(file.file, folder="avatars")
+        avatar_url = result.get("secure_url")
+        if not avatar_url:
+            raise HTTPException(status_code=400, detail="Ошибка загрузки файла в Cloudinary")
+        current_user.avatar = avatar_url
+        await db.commit()
+        await db.refresh(current_user)
+        return {"avatar": avatar_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
