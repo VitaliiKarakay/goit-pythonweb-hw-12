@@ -1,9 +1,13 @@
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
 import pytest
 from src.services.auth import create_access_token, decode_access_token
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from fastapi import HTTPException, status
 from src.services.auth import get_current_user
-from src.database.models import User
 
 
 @pytest.mark.parametrize("user_id", [1, 42, 100])

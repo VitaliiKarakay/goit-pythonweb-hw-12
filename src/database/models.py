@@ -63,3 +63,4 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_verified = Column(Boolean, default=False)
     verification_token = Column(String(255), nullable=True)
+    role = Column(String(10), nullable=False, default="user")

@@ -1,12 +1,13 @@
 import uuid
 
 from cloudinary.uploader import upload as cloudinary_upload
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Body
 from fastapi_limiter.depends import RateLimiter
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from src.conf.redis_client import get_redis
 from src.database.db import get_db
 from src.database.models import User
 from src.schemas import UserCreate, UserResponse, UserLogin, TokenResponse
@@ -42,7 +43,8 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
         email=user.email,
         hashed_password=hashed_password,
         is_verified=False,
-        verification_token=verification_token
+        verification_token=verification_token,
+        role='user'  # Set default role
     )
     db.add(new_user)
     await db.commit()
@@ -55,7 +57,8 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
         is_active=new_user.is_active,
         avatar=new_user.avatar,
         created_at=new_user.created_at,
-        is_verified=new_user.is_verified
+        is_verified=new_user.is_verified,
+        role=new_user.role  # Pass role to response
     )
 
 @router.get("/verify-email")
@@ -144,14 +147,49 @@ async def update_avatar(
     Raises:
         HTTPException: If upload fails or server error occurs.
     """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only administrators can change their avatar themselves.")
     try:
         result = cloudinary_upload(file.file, folder="avatars")
         avatar_url = result.get("secure_url")
         if not avatar_url:
-            raise HTTPException(status_code=400, detail="Ошибка загрузки файла в Cloudinary")
+            raise HTTPException(status_code=400, detail="Error uploading file to Cloudinary")
         current_user.avatar = avatar_url
         await db.commit()
         await db.refresh(current_user)
         return {"avatar": avatar_url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/request-password-reset", status_code=status.HTTP_200_OK)
+async def request_password_reset(email: str = Body(..., embed=True)):
+    """
+    Request password reset. Generates a token, saves it in Redis, and logs email sending (mock).
+    """
+    redis = await get_redis()
+    token = str(uuid.uuid4())
+    await redis.set(f"reset:{token}", email, ex=3600)  # Token valid for 1 hour
+    # Here you can send email, but for testing just log
+    print(f"[MOCK EMAIL] To reset your password, go to: /auth/reset-password?token={token}")
+    return {"msg": "Password reset instructions sent to email (mock)"}
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(token: str = Body(...), new_password: str = Body(...), db: AsyncSession = Depends(get_db)):
+    """
+    Reset password by token. Checks token, updates user's password.
+    """
+    redis = await get_redis()
+    email = await redis.get(f"reset:{token}")
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired password reset token")
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    user.hashed_password = pwd_context.hash(new_password)
+    await db.commit()
+    await db.refresh(user)
+    await redis.delete(f"reset:{token}")
+    return {"msg": "Password successfully reset"}
