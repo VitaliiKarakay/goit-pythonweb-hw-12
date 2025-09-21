@@ -19,6 +19,19 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    """
+    Register a new user in the system.
+
+    Args:
+        user (UserCreate): User registration data.
+        db (AsyncSession): Database session dependency.
+
+    Returns:
+        UserResponse: Registered user data.
+
+    Raises:
+        HTTPException: If user already exists (409).
+    """
     result = await db.execute(select(User).where(User.email == user.email))
     existing_user = result.scalar_one_or_none()
     if existing_user:
@@ -47,6 +60,19 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.get("/verify-email")
 async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+    """
+    Verify user's email using a token.
+
+    Args:
+        token (str): Verification token from email link.
+        db (AsyncSession): Database session dependency.
+
+    Returns:
+        dict: Success message.
+
+    Raises:
+        HTTPException: If token is invalid or expired (400).
+    """
     result = await db.execute(select(User).where(User.verification_token == token))
     user = result.scalar_one_or_none()
     if not user:
@@ -58,6 +84,19 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
+    """
+    Authenticate user and return JWT access token.
+
+    Args:
+        user (UserLogin): Login credentials.
+        db (AsyncSession): Database session dependency.
+
+    Returns:
+        TokenResponse: JWT access token.
+
+    Raises:
+        HTTPException: If credentials are invalid (401).
+    """
     result = await db.execute(select(User).where(User.email == user.email))
     db_user = result.scalar_one_or_none()
     if not db_user or not pwd_context.verify(user.password, db_user.hashed_password):
@@ -67,6 +106,15 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def get_me(current_user: User = Depends(get_current_user)):
+    """
+    Get current authenticated user's profile.
+
+    Args:
+        current_user (User): Current authenticated user dependency.
+
+    Returns:
+        UserResponse: User profile data.
+    """
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
@@ -82,6 +130,20 @@ async def update_avatar(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    """
+    Update user's avatar image using Cloudinary.
+
+    Args:
+        file (UploadFile): Uploaded avatar image file.
+        current_user (User): Current authenticated user dependency.
+        db (AsyncSession): Database session dependency.
+
+    Returns:
+        dict: Avatar URL.
+
+    Raises:
+        HTTPException: If upload fails or server error occurs.
+    """
     try:
         result = cloudinary_upload(file.file, folder="avatars")
         avatar_url = result.get("secure_url")
