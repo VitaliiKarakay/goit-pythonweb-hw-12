@@ -10,7 +10,7 @@ email_validator==2.2.0
 fastapi==0.115.12
 fastapi-limiter==0.1.5
 redis>=4.2
-setuptools
+setuptools~=65.5.0
 greenlet==3.2.4
 h11==0.14.0
 idna==3.10
@@ -39,3 +39,12 @@ pip~=25.2
 certifi~=2025.8.3
 requests~=2.32.4
 urllib3~=2.5.0
+
+pytest~=8.4.2
+rsa~=4.9.1
+pyasn1~=0.6.1
+ecdsa~=0.19.1
+Pygments~=2.19.2
+six~=1.17.0
+aioredis~=2.0.1
+psycopg2~=2.9.10
