@@ -80,13 +80,11 @@ async def get_current_user(token: str = Depends(OAuth2PasswordBearer(tokenUrl="/
     cached_user = await redis.get(cache_key)
     if cached_user:
         user_dict = json.loads(cached_user)
-        # Восстанавливаем объект User через pydantic
         return User(**user_dict)
     result = await db.execute(select(User).where(User.id == user_id))
     db_user = result.scalar_one_or_none()
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-    # Сохраняем пользователя в Redis
     user_dict = {
         "id": db_user.id,
         "email": db_user.email,
@@ -99,5 +97,5 @@ async def get_current_user(token: str = Depends(OAuth2PasswordBearer(tokenUrl="/
         "verification_token": db_user.verification_token,
         "role": db_user.role,
     }
-    await redis.set(cache_key, json.dumps(user_dict), ex=3600)  # Кеш на 1 час
+    await redis.set(cache_key, json.dumps(user_dict), ex=3600)
     return db_user
