@@ -108,6 +108,7 @@ class UserResponse(BaseModel):
         avatar (Optional[str]): Avatar URL (optional).
         created_at (Optional[datetime]): Account creation timestamp.
         is_verified (bool): Email verification status.
+        role (str): User role.
     """
 
     id: int
@@ -116,6 +117,7 @@ class UserResponse(BaseModel):
     avatar: Optional[str] = None
     created_at: Optional[datetime] = None
     is_verified: bool
+    role: str
 
 
 class TokenResponse(BaseModel):

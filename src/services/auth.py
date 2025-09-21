@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from typing import Optional
 import os
+import json
 
 from dotenv import load_dotenv
 
@@ -13,6 +14,7 @@ from sqlalchemy.future import select
 from src.database.db import get_db
 from src.database.models import User
 from fastapi.security import OAuth2PasswordBearer
+from src.conf.redis_client import get_redis
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "secret")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -73,8 +75,29 @@ async def get_current_user(token: str = Depends(OAuth2PasswordBearer(tokenUrl="/
     if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     user_id = int(payload.get("sub"))
+    redis = await get_redis()
+    cache_key = f"user:{user_id}"
+    cached_user = await redis.get(cache_key)
+    if cached_user:
+        user_dict = json.loads(cached_user)
+        # Восстанавливаем объект User через pydantic
+        return User(**user_dict)
     result = await db.execute(select(User).where(User.id == user_id))
     db_user = result.scalar_one_or_none()
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    # Сохраняем пользователя в Redis
+    user_dict = {
+        "id": db_user.id,
+        "email": db_user.email,
+        "hashed_password": db_user.hashed_password,
+        "is_active": db_user.is_active,
+        "avatar": db_user.avatar,
+        "created_at": db_user.created_at.isoformat() if db_user.created_at else None,
+        "updated_at": db_user.updated_at.isoformat() if db_user.updated_at else None,
+        "is_verified": db_user.is_verified,
+        "verification_token": db_user.verification_token,
+        "role": db_user.role,
+    }
+    await redis.set(cache_key, json.dumps(user_dict), ex=3600)  # Кеш на 1 час
     return db_user
