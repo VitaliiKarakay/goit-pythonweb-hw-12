@@ -20,6 +20,16 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Create a JWT access token for authentication.
+
+    Args:
+        data (dict): Data to encode in the token.
+        expires_delta (Optional[timedelta]): Expiration time delta.
+
+    Returns:
+        str: Encoded JWT token.
+    """
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
@@ -28,6 +38,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 def decode_access_token(token: str) -> Optional[dict]:
+    """
+    Decode a JWT access token.
+
+    Args:
+        token (str): JWT token to decode.
+
+    Returns:
+        Optional[dict]: Decoded payload if valid, otherwise None.
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
@@ -35,7 +54,21 @@ def decode_access_token(token: str) -> Optional[dict]:
         return None
 
 
-async def get_current_user(token: str = Depends(OAuth2PasswordBearer(tokenUrl="/auth/login")), db: AsyncSession = Depends(get_db)) -> User:
+async def get_current_user(token: str = Depends(OAuth2PasswordBearer(tokenUrl="/auth/login")),
+                           db: AsyncSession = Depends(get_db)) -> User:
+    """
+    Retrieve the current authenticated user from the JWT token.
+
+    Args:
+        token (str): JWT token from request.
+        db (AsyncSession): Database session dependency.
+
+    Returns:
+        User: Authenticated user instance.
+
+    Raises:
+        HTTPException: If token is invalid or user not found.
+    """
     payload = decode_access_token(token)
     if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
